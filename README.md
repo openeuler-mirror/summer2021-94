@@ -10,7 +10,7 @@ Summer2021-No.94 在openeuler社区孵化生物信息单细胞领域开源应用
 软件架构
 ------------
 
-在这里，我们提出一个集成了三个深度学习算法框架的模型，用于预测TCR_pMHC分子的结合强度。该模型在独立测试数据集上获得了出色的性能，从而使免疫原性T细胞表位的可靠鉴定成为可能。
+在这里，我们提出一个集成了三个深度学习算法框架的模型——DLpTCR，用于预测TCR_pMHC分子的结合强度。该模型在独立测试数据集上获得了出色的性能，从而使免疫原性T细胞表位的可靠鉴定成为可能。
 
 安装教程
 ------------
@@ -34,6 +34,13 @@ Summer2021-No.94 在openeuler社区孵化生物信息单细胞领域开源应用
 文件介绍
 --------
 
+model 文件夹
+--------
+该文件夹包含了构成DLpTCR的基础分类器模型文件。
+1) FULL_A_ALL_onehot.h5, CNN_A_ALL_onehot.h5 和 RESNET_A_ALL_pca15.h5 是用于预测肽与TCRα单链相互作用的集成模型的三个集成分类器。
+2) FULL_B_ALL_pca18.h5, CNN_B_ALL_pca20.h5 和 RESNET_B_ALL_pca10.h5 是用于预测肽与TCRβ单链相互作用的集成模型的三个集成分类器。
+
+
 data 文件夹
 --------
 
@@ -43,7 +50,7 @@ data 文件夹
 2)TCRA_test.csv和TCRB_test.csv是测试集。   
 3)TCRA_COVID-19.csv和TCRB_COVID-19.csv是两个独立测试集。   
 4)TRA-VDJdb_TCR cross-reactivity.rar 和 TRB_VDJdb_TCR cross-reactivity.rar 用于评价模型对抗原肽与tcr单链相互作用的预测能力。   
-5)TCRAB_IEDB.csv 用于评价预测抗原肽肽- tcr-CDR3αβ相互作用的集成模型。   
+5)TCRAB_IEDB.csv 用于评价预测抗原肽与CDR3αβ双链相互作用的集成模型。   
 
 
 pca 文件夹
@@ -58,7 +65,8 @@ code 文件夹
 包含了特征提取、五折交叉验证、模型构建与训练的源代码。   
 1)“fold”文件夹中的代码用于五折交叉验证来选择合适的特征和寻找最优的超参数组合。   
 2)“train”文件夹中的源代码用于构造和训练三个深度学习算法预测器。   
-3)使用代码(XXX_Feature_Extraction.py)实现特征编码。   
+3)使用代码(XXX_Feature_Extraction.py)实现特征编码。  
+4) 使用代码(DLpTCR.py) 用于预测肽与TCR的相互作用。 
 
 使用说明
 ----------
@@ -68,7 +76,43 @@ code 文件夹
 软件安装完成后，TensorFlow会随软件一起安装。参考Keras文档配置TensorFlow在GPU/CPU上运行。   
 注意，如果你想使用GPU，你还需要安装CUDA和cuDNN，请参阅他们的网站以获得教程。
 
-### 对于想要使用自己的数据进行训练和预测的用户：
+### 对于希望通过我们提供的模型进行免疫原性肽预测的研究人员：:
+进入 DLpTCR/code 路径中，该路径下包含了 DLpTCR_server.py, Model_Predict_Feature_Extraction.py.
+
+    python
+    >>> from Feature_Extraction import *
+    >>> from DLpTCR_server import *
+    >>> input_file_path = '../data/Example_file.xlsx'
+
+有关输入文件的格式，请参阅文档“Example_file.xlsx”。
+请勿修改列名。
+
+    >>> model_select = "AB"  
+
+model:pTCRα    user_select = "A" 
+model:pTCRβ    user_select = "B" 
+model:pTCRαβ  user_select = "AB" 
+
+    >>> job_dir_name = 'test'
+    >>> user_dir = './user/' + str(job_dir_name) + '/'
+
+
+预测的结果将保存在文件夹“user_dir”中。
+
+    >>> user_dir_Exists = os.path.exists(user_dir)
+    >>> if not user_dir_Exists: 
+        os.makedirs(user_dir)
+    
+    >>> error_info,TCRA_cdr3,TCRB_cdr3,Epitope = deal_file(input_file_path, user_dir, model_select)
+    >>> output_file_path = save_outputfile(user_dir, user_select, input_file_path,TCRA_cdr3,TCRB_cdr3,Epitope)
+
+此外，您可以使用 API.py 文件来预测肽与TCR 的相互作用。
+
+    python API.py
+
+
+
+### 对于想要使用自己的数据进行训练和预测的研究人员：
 
 #### 自定义训练模型::
 用户使用自己数据进行模型训练:
